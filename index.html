@@ -627,7 +627,7 @@ function printOrder(o) {
     <div style="text-align:right"><b>Invoice / Packing slip</b><br>${esc(o.number)}<br>${fmtDate(o.created_at)}</div></div>
     <div style="display:flex;justify-content:space-between;gap:30px;margin-bottom:14px"><div><b>Deliver to</b><br>${esc(o.customer_name)}<br>${esc(o.phone)}<br>${esc(o.address)}<br>${esc(o.district)}</div>
     <div style="text-align:right"><b>Payment</b><br>Cash on delivery<br>${o.payment_status === 'paid' ? 'PAID' : 'Collect: ' + money(o.total)}</div></div>
-    <table><thead><tr><th>Item</th><th>Code</th><th>Size/Color</th><th style="text-align:right">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr></thead><tbody>
+    <table><thead><tr><th>Item</th><th>Code</th><th>Option/Color</th><th style="text-align:right">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr></thead><tbody>
     ${o.items.map(i => `<tr><td>${esc(i.name)}</td><td>${esc(i.code)}</td><td>${esc(i.size)} ${esc(i.color)}</td><td style="text-align:right">${i.quantity}</td><td style="text-align:right">${money(i.price)}</td><td style="text-align:right">${money(i.line_total)}</td></tr>`).join('')}</tbody></table>
     <div style="margin:14px 0 0 auto;width:240px"><div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>${money(o.subtotal)}</span></div>
     ${o.discount ? `<div style="display:flex;justify-content:space-between"><span>Discount</span><span>− ${money(o.discount)}</span></div>` : ''}
@@ -700,7 +700,7 @@ async function openProduct(id) {
         ${field('Price (৳) *', `<input type="number" min="0" name="price" value="${p.price}" required>`)}
         ${field('Old price (৳)', `<input type="number" min="0" name="old_price" value="${p.old_price ?? ''}">`, 'Shows a discount badge')}</div>
       ${field('Description', `<textarea name="description" rows="4">${esc(p.description)}</textarea>`)}
-      <div class="grid g3">${field('Fabric', `<input type="text" name="fabric" value="${esc(p.fabric)}">`)}${field('Fit', `<input type="text" name="fit" value="${esc(p.fit)}">`)}${field('Care', `<input type="text" name="care" value="${esc(p.care)}">`)}</div>
+      <div class="grid g3">${field('Material (optional)', `<input type="text" name="fabric" value="${esc(p.fabric)}">`)}${field('Type / Features (optional)', `<input type="text" name="fit" value="${esc(p.fit)}">`)}${field('Care & usage (optional)', `<input type="text" name="care" value="${esc(p.care)}">`)}</div>
       <div class="flex wrap" style="gap:28px">${toggle('is_active', p.is_active, 'Visible in store')}${toggle('is_featured', p.is_featured, 'Featured on homepage')}</div></div></div>
     <div class="sec"><h4>Variants & stock</h4><div id="vbox"></div>
       <div class="flex wrap" style="margin-top:6px"><button type="button" class="btn sm" id="addv">${ic('plus')} Add variant</button><button type="button" class="btn sm" id="presets">Add sizes S · M · L · XL · XXL</button></div></div>
@@ -711,8 +711,8 @@ async function openProduct(id) {
 
   const vbox = $('#vbox', m.el);
   const drawV = () => {
-    vbox.innerHTML = `<div class="vrow vhead"><span>Size</span><span>Color</span><span></span><span>Stock</span><span></span></div>` + V.map((v, i) => `<div class="vrow">
-      <input type="text" data-vi="${i}" data-k="size" value="${esc(v.size)}" placeholder="M" aria-label="Size">
+    vbox.innerHTML = `<div class="vrow vhead"><span>Size / Option</span><span>Color</span><span></span><span>Stock</span><span></span></div>` + V.map((v, i) => `<div class="vrow">
+      <input type="text" data-vi="${i}" data-k="size" value="${esc(v.size)}" placeholder="e.g. M, 128GB, 1kg, Free" aria-label="Size / Option">
       <input type="text" data-vi="${i}" data-k="color" value="${esc(v.color)}" placeholder="e.g. Green" aria-label="Color">
       <input type="color" data-vi="${i}" data-k="color_hex" value="${/^#[0-9a-f]{6}$/i.test(v.color_hex) ? v.color_hex : '#cccccc'}" title="Color swatch" aria-label="Color swatch">
       <input type="number" min="0" data-vi="${i}" data-k="stock" value="${v.stock}" aria-label="Stock">
