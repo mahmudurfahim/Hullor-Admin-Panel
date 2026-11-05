@@ -223,7 +223,7 @@ details.api{margin-top:14px;font-size:13px}details.api summary{cursor:pointer;co
 <script>
 /* ==========================================================================
    HULLOR Admin — single-file panel.
-   ▸ একবার এখানে আপনার Render backend URL বসান (অথবা লগইন পেজে "Server URL" এ দিন):
+   ▸ Render backend URL এখানে একবার বসান (লগইন পেজে আর Server URL দেখানো হয় না):
    ========================================================================== */
 const API_URL = "https://hullor-api.onrender.com";
 
@@ -279,7 +279,8 @@ function normalizeApi(u) {
   if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
   return /\/api$/.test(u) ? u : u + '/api';
 }
-S.api = normalizeApi(store.get('hullor_admin_api') || API_URL);
+store.del('hullor_admin_api');   // আগে ব্রাউজারে সেভ করা পুরনো Server URL মুছে ফেলা
+S.api = normalizeApi(API_URL);
 S.access = store.get('hullor_admin_access') || '';
 S.refresh = store.get('hullor_admin_refresh') || '';
 function saveTokens() { store.set('hullor_admin_access', S.access || ''); store.set('hullor_admin_refresh', S.refresh || ''); }
@@ -405,16 +406,11 @@ function showLogin(msg = '') {
       ${field('Password', '<input type="password" name="password" autocomplete="current-password" required>')}
       <button class="btn primary" type="submit" style="padding:11px">Sign in</button>
     </div>
-    <details class="api" ${store.get('hullor_admin_api') ? '' : 'open'}><summary>Server URL</summary>
-      <div style="margin-top:8px"><input type="text" name="api" value="${esc(S.api.replace(/\/api$/, ''))}" placeholder="https://your-backend.onrender.com">
-      <small class="muted">Your Django backend address. Saved in this browser.</small></div></details>
+
   </form></div>`;
   $('#lf').onsubmit = async e => {
     e.preventDefault();
     const f = readForm(e.target), btn = $('button[type=submit]', e.target);
-    const url = normalizeApi(f.api);
-    if (!url) return showLogin('Enter your server URL.');
-    S.api = url; store.set('hullor_admin_api', url);
     btn.disabled = true; btn.textContent = 'Signing in…';
     try {
       const d = await api('/auth/login/', {method: 'POST', body: {identifier: f.identifier, password: f.password}, noRefresh: true});
@@ -592,9 +588,10 @@ async function openOrder(id) {
     <div class="sec"><h4>Items</h4>${o.items.map(i => `<div class="prod" style="padding:8px 0;border-bottom:1px dashed var(--line)">${thumb(i.image, i.name)}<div class="grow"><b>${esc(i.name)}</b><span class="muted small mono">${esc(i.code)}${i.size ? ' · ' + esc(i.size) : ''}${i.color ? ' · ' + esc(i.color) : ''}</span></div><div class="right nowrap">${i.quantity} × ${money(i.price)}<br><b>${money(i.line_total)}</b></div></div>`).join('')}
       <div class="totals" style="margin-top:12px"><div><span>Subtotal</span><span>${money(o.subtotal)}</span></div>
       ${o.discount ? `<div><span>Discount ${o.coupon_code ? `(${esc(o.coupon_code)})` : ''}</span><span>− ${money(o.discount)}</span></div>` : ''}
-      <div><span>Delivery</span><span>${o.delivery_charge ? money(o.delivery_charge) : 'Free'}</span></div><div class="t"><span>Total (Cash on delivery)</span><span>${money(o.total)}</span></div></div></div>
+      <div><span>Delivery</span><span>${money(o.delivery_charge)}</span></div><div class="t"><span>Total (Cash on delivery)</span><span>${money(o.total)}</span></div></div></div>
     <div class="sec"><h4>Customer & delivery</h4><dl class="kv"><dt>Name</dt><dd>${esc(o.customer_name)}</dd><dt>Phone</dt><dd><a href="tel:${esc(o.phone)}">${esc(o.phone)}</a></dd>
       ${o.email ? `<dt>Email</dt><dd>${esc(o.email)}</dd>` : ''}<dt>District</dt><dd>${esc(o.district)}</dd><dt>Address</dt><dd>${esc(o.address)}</dd>
+      <dt>Saved as</dt><dd class="small muted">BN: ${esc([o.customer_name_bn, o.address_bn].filter(Boolean).join(' · ') || '—')}<br>EN: ${esc([o.customer_name_en, o.address_en].filter(Boolean).join(' · ') || '—')}</dd>
       ${o.note ? `<dt>Note</dt><dd>${esc(o.note)}</dd>` : ''}<dt>Account</dt><dd>${o.customer ? esc(o.customer.name) + ' · ' + esc(o.customer.phone) : '—'}</dd><dt>Placed</dt><dd>${fmtDate(o.created_at)}</dd></dl></div>
     <div class="sec"><h4>Timeline</h4><ul class="tline">${[...o.history].reverse().map(h => `<li>${stPill(h.status)} <span class="muted small">${fmtDate(h.created_at)}</span>${h.note ? `<div class="small">${esc(h.note)}</div>` : ''}</li>`).join('')}</ul></div>`;
     m.body.onclick = async e => {
@@ -631,7 +628,7 @@ function printOrder(o) {
     ${o.items.map(i => `<tr><td>${esc(i.name)}</td><td>${esc(i.code)}</td><td>${esc(i.size)} ${esc(i.color)}</td><td style="text-align:right">${i.quantity}</td><td style="text-align:right">${money(i.price)}</td><td style="text-align:right">${money(i.line_total)}</td></tr>`).join('')}</tbody></table>
     <div style="margin:14px 0 0 auto;width:240px"><div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>${money(o.subtotal)}</span></div>
     ${o.discount ? `<div style="display:flex;justify-content:space-between"><span>Discount</span><span>− ${money(o.discount)}</span></div>` : ''}
-    <div style="display:flex;justify-content:space-between"><span>Delivery</span><span>${o.delivery_charge ? money(o.delivery_charge) : 'Free'}</span></div>
+    <div style="display:flex;justify-content:space-between"><span>Delivery</span><span>${money(o.delivery_charge)}</span></div>
     <div style="display:flex;justify-content:space-between;font-weight:700;font-size:15px;border-top:1px solid #000;margin-top:6px;padding-top:6px"><span>Total</span><span>${money(o.total)}</span></div></div>
     ${o.note ? `<p><b>Note:</b> ${esc(o.note)}</p>` : ''}<p style="text-align:center;margin-top:30px">Thank you for shopping with HULLOR!</p>`;
   setTimeout(() => window.print(), 80);
@@ -686,7 +683,7 @@ async function loadProducts(alive) {
 
 async function openProduct(id) {
   if (!CATS.length) await loadCats();
-  let p = {name: '', code: '', category: '', price: '', old_price: '', description: '', fabric: '', fit: '', care: '', is_active: true, is_featured: false, variants: [{size: 'Free', color: '', color_hex: '', stock: 10}], images: []};
+  let p = {name: '', name_en: '', description_en: '', code: '', category: '', price: '', old_price: '', description: '', fabric: '', fit: '', care: '', is_active: true, is_featured: false, variants: [{size: 'Free', color: '', color_hex: '', stock: 10}], images: []};
   const m = openModal({title: id ? 'Edit product' : 'New product', wide: true, body: skel(8), footer: '<button class="btn" data-close>Cancel</button>'});
   if (id) { try { p = await api(`/admin/products/${id}/`); } catch (e) { m.body.innerHTML = emptyHtml(errMsg(e), 'x'); return; } }
   const V = p.variants.map(v => ({...v}));
@@ -694,17 +691,19 @@ async function openProduct(id) {
   const Q = [];                                                // queued (create mode): {file?, url?, src}
   m.body.innerHTML = `<form id="pf" onsubmit="return false">
     <div class="sec"><h4>Basic info</h4><div class="grid">
-      <div class="grid g2">${field('Name *', `<input type="text" name="name" value="${esc(p.name)}" required>`)}
-        ${field('Product code', `<input type="text" name="code" value="${esc(p.code)}" placeholder="Auto-generated if empty" style="text-transform:uppercase">`, 'Customer-facing code, e.g. FMSH001')}</div>
+      <div class="grid g2">${field('Name (বাংলা / default) *', `<input type="text" name="name" value="${esc(p.name)}" required>`)}
+        ${field('Name (English)', `<input type="text" name="name_en" value="${esc(p.name_en || '')}">`, 'Shown on the English site. Empty = default name')}</div>
+      <div class="grid g2">${field('Product code', `<input type="text" name="code" value="${esc(p.code)}" placeholder="Auto-generated if empty" style="text-transform:uppercase">`, 'Customer-facing code, e.g. FMSH001')}</div>
       <div class="grid g3">${field('Category', `<select name="category"><option value="">— None —</option>${CATS.map(c => `<option value="${c.id}" ${String(c.id) === String(p.category) ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>`)}
         ${field('Price (৳) *', `<input type="number" min="0" name="price" value="${p.price}" required>`)}
         ${field('Old price (৳)', `<input type="number" min="0" name="old_price" value="${p.old_price ?? ''}">`, 'Shows a discount badge')}</div>
-      ${field('Description', `<textarea name="description" rows="4">${esc(p.description)}</textarea>`)}
+      ${field('Description (বাংলা / default)', `<textarea name="description" rows="4">${esc(p.description)}</textarea>`)}
+      ${field('Description (English)', `<textarea name="description_en" rows="4">${esc(p.description_en || '')}</textarea>`, 'Empty = default description is shown')}
       <div class="grid g3">${field('Material (optional)', `<input type="text" name="fabric" value="${esc(p.fabric)}">`)}${field('Type / Features (optional)', `<input type="text" name="fit" value="${esc(p.fit)}">`)}${field('Care & usage (optional)', `<input type="text" name="care" value="${esc(p.care)}">`)}</div>
       <div class="flex wrap" style="gap:28px">${toggle('is_active', p.is_active, 'Visible in store')}${toggle('is_featured', p.is_featured, 'Featured on homepage')}</div></div></div>
     <div class="sec"><h4>Variants & stock</h4><div id="vbox"></div>
       <div class="flex wrap" style="margin-top:6px"><button type="button" class="btn sm" id="addv">${ic('plus')} Add variant</button><button type="button" class="btn sm" id="presets">Add sizes S · M · L · XL · XXL</button></div></div>
-    <div class="sec"><h4>Images</h4><div class="dz" id="dz" tabindex="0" role="button">${ic('up2', 'ic')}<div><b>Drop images here</b> or click to browse</div><div class="small">JPG / PNG / WebP · up to 6MB each · first image is the main one</div></div>
+    <div class="sec"><h4>Images</h4><div class="dz" id="dz" tabindex="0" role="button">${ic('up2', 'ic')}<div><b>Drop images here</b> or click to browse</div><div class="small">JPG / PNG / WebP · up to 6MB each · first image is the main one</div><div class="small"><b>Best size: 1000 × 1250 px</b> (4:5 portrait, min 800 × 1000) · ideally under 500 KB. Images are cropped to 4:5 in the shop.</div></div>
       <input type="file" id="fi" accept="image/*" multiple class="hide">
       <div class="flex" style="margin-top:10px"><input type="url" id="iurl" placeholder="…or paste an image URL"><button type="button" class="btn" id="iurlb">Add URL</button></div><div class="imgs" id="imgs"></div></div></form>`;
   m.foot.innerHTML = `${id ? '<button class="btn danger" data-del style="margin-right:auto">Delete</button>' : ''}<button class="btn" data-close>Cancel</button><button class="btn primary" data-save>${id ? 'Save changes' : 'Create product'}</button>`;
@@ -797,7 +796,7 @@ async function openProduct(id) {
       return o;
     });
     const payload = {name: f.name.trim(), category: f.category ? +f.category : null, price: +f.price, old_price: intOrNull(f.old_price),
-      description: f.description, fabric: f.fabric, fit: f.fit, care: f.care, is_active: f.is_active, is_featured: f.is_featured, variants};
+      name_en: f.name_en.trim(), description: f.description, description_en: f.description_en, fabric: f.fabric, fit: f.fit, care: f.care, is_active: f.is_active, is_featured: f.is_featured, variants};
     if (f.code.trim() || !id) payload.code = f.code.trim();
     try {
       let saved;
@@ -818,18 +817,19 @@ async function openProduct(id) {
 }
 
 /* ------------------- Categories & Banners (image entities) ---------------- */
-function imageFieldHtml(item) {
+function imageFieldHtml(item, hint = '') {
   const src = item && item.image_src;
   return `<div class="sec" style="margin:0"><h4>Image</h4><div class="flex" style="align-items:flex-start">
     <div id="ipv" style="width:120px;flex-shrink:0">${src ? `<img class="thumb" style="width:120px;height:80px" src="${esc(src)}" alt="">` : '<div class="thumb ph" style="width:120px;height:80px">No image</div>'}</div>
     <div class="grow grid" style="gap:8px"><input type="file" name="image" accept="image/*"><input type="url" name="image_url" placeholder="…or image URL" value="${esc(item && !item.image_src?.includes('/media/') && item.image_url || '')}">
+    ${hint ? `<small class="muted">${hint}</small>` : ''}
     ${src ? '<label class="check small"><input type="checkbox" name="remove_image"> Remove current image</label>' : ''}</div></div></div>`;
 }
 function bindPreview(root) {
   const fi = $('input[name=image]', root), pv = $('#ipv', root);
   if (fi) fi.onchange = () => { if (fi.files[0]) pv.innerHTML = `<img class="thumb" style="width:120px;height:80px" src="${URL.createObjectURL(fi.files[0])}" alt="">`; };
 }
-function imageEntityView({title, path, noun, cardTitle, cardSub, formBody, extraFields}) {
+function imageEntityView({title, path, noun, cardTitle, cardSub, formBody, extraFields, imgHint}) {
   return async (view, alive) => {
     const load = async () => {
       const items = await api(path);
@@ -842,7 +842,7 @@ function imageEntityView({title, path, noun, cardTitle, cardSub, formBody, extra
     view.innerHTML = `<div class="page-h"><h2>${title}</h2><button class="btn primary" id="addb">${ic('plus')} Add ${noun}</button></div><div class="cardgrid" id="grid">${skel()}</div>`;
     window.__refresh = load;
     const open = item => {
-      const m = openModal({title: (item ? 'Edit ' : 'New ') + noun, body: `<form id="ef" class="grid" onsubmit="return false">${formBody(item || {})}${imageFieldHtml(item)}</form>`,
+      const m = openModal({title: (item ? 'Edit ' : 'New ') + noun, body: `<form id="ef" class="grid" onsubmit="return false">${formBody(item || {})}${imageFieldHtml(item, imgHint)}</form>`,
         footer: '<button class="btn" data-close>Cancel</button><button class="btn primary" data-save>Save</button>'});
       bindPreview(m.el);
       $('[data-save]', m.el).onclick = e => busy(e.currentTarget, async () => {
@@ -868,13 +868,18 @@ function imageEntityView({title, path, noun, cardTitle, cardSub, formBody, extra
   };
 }
 VIEWS.categories = imageEntityView({title: 'Categories', path: '/admin/categories/', noun: 'category', cardTitle: c => c.name,
+  imgHint: '<b>Best size: 800 × 500 px</b> (landscape 16:10), JPG/WebP, under 300 KB. Shown as the category card background on the homepage.',
   cardSub: c => `/${esc(c.slug)} · ${c.product_count} product${c.product_count === 1 ? '' : 's'} · position ${c.position}`,
-  formBody: c => `<div class="grid g2">${field('Name *', `<input type="text" name="name" value="${esc(c.name || '')}" required>`)}${field('Slug', `<input type="text" name="slug" value="${esc(c.slug || '')}" placeholder="auto">`, 'URL part, e.g. shirt')}</div>
+  formBody: c => `<div class="grid g2">${field('Name (বাংলা / default) *', `<input type="text" name="name" value="${esc(c.name || '')}" required>`)}${field('Name (English)', `<input type="text" name="name_en" value="${esc(c.name_en || '')}">`, 'Empty = default name')}</div>
+    <div class="grid g2">${field('Slug', `<input type="text" name="slug" value="${esc(c.slug || '')}" placeholder="auto">`, 'URL part, e.g. shirt')}</div>
     <div class="grid g2">${field('Position', `<input type="number" min="0" name="position" value="${c.position ?? 0}">`, 'Lower shows first')}<div style="padding-top:22px">${toggle('is_active', c.is_active !== false, 'Active')}</div></div>`});
 VIEWS.banners = imageEntityView({title: 'Banners', path: '/admin/banners/', noun: 'banner', cardTitle: b => b.title,
+  imgHint: '<b>Best size: 1000 × 1250 px</b> (4:5 portrait, min 800 × 1000), JPG/WebP, under 500 KB. Shown in the homepage hero slider; keep the main subject in the middle.',
   cardSub: b => `${esc(b.subtitle || '')}<br>Link: ${esc(b.link || '—')} · position ${b.position}`,
-  formBody: b => `${field('Title *', `<input type="text" name="title" value="${esc(b.title || '')}" required>`)}${field('Subtitle', `<input type="text" name="subtitle" value="${esc(b.subtitle || '')}">`)}
-    <div class="grid g2">${field('Button text', `<input type="text" name="button_text" value="${esc(b.button_text ?? 'কালেকশন দেখুন')}">`)}${field('Link', `<input type="text" name="link" value="${esc(b.link ?? '/shop')}" placeholder="/shop">`)}</div>
+  formBody: b => `<div class="grid g2">${field('Title (বাংলা / default) *', `<input type="text" name="title" value="${esc(b.title || '')}" required>`)}${field('Title (English)', `<input type="text" name="title_en" value="${esc(b.title_en || '')}">`)}</div>
+    <div class="grid g2">${field('Subtitle (বাংলা)', `<input type="text" name="subtitle" value="${esc(b.subtitle || '')}">`)}${field('Subtitle (English)', `<input type="text" name="subtitle_en" value="${esc(b.subtitle_en || '')}">`)}</div>
+    <div class="grid g2">${field('Button text (বাংলা)', `<input type="text" name="button_text" value="${esc(b.button_text ?? 'কালেকশন দেখুন')}">`)}${field('Button text (English)', `<input type="text" name="button_text_en" value="${esc(b.button_text_en ?? 'Shop now')}">`)}</div>
+    <div class="grid g2">${field('Link', `<input type="text" name="link" value="${esc(b.link ?? '/shop')}" placeholder="/shop">`)}</div>
     <div class="grid g2">${field('Position', `<input type="number" min="0" name="position" value="${b.position ?? 0}">`)}<div style="padding-top:22px">${toggle('is_active', b.is_active !== false, 'Active')}</div></div>`});
 
 /* -------------------------------- COUPONS -------------------------------- */
@@ -981,18 +986,40 @@ VIEWS.reviews = async (view, alive) => {
 VIEWS.settings = async (view, alive) => {
   const s = await api('/admin/settings/'); if (!alive()) return;
   const t = (k, label, extra = '', hint = '') => field(label, `<input type="${extra || 'text'}" name="${k}" value="${esc(s[k] ?? '')}">`, hint);
+  const ta = (k, label, rows = 3, hint = '') => field(label, `<textarea name="${k}" rows="${rows}">${esc(s[k] ?? '')}</textarea>`, hint);
+  const aboutSrc = s.about_image_src;
   view.innerHTML = `<div class="page-h"><h2>Store settings</h2></div><form id="sf" style="max-width:860px" onsubmit="return false">
-    <div class="sec"><h4>Store</h4><div class="grid"><div class="grid g2">${t('store_name', 'Store name')}${t('tagline', 'Tagline')}</div>
-      ${t('announcement', 'Announcement bar text', '', 'Shown at the top of the storefront. Leave empty to hide.')}</div></div>
+    <div class="sec"><h4>Store</h4><div class="grid">${t('store_name', 'Store name')}
+      <div class="grid g2">${t('tagline', 'Tagline (বাংলা)')}${t('tagline_en', 'Tagline (English)')}</div>
+      <div class="grid g2">${t('announcement', 'Announcement bar (বাংলা)', '', 'Top bar of the storefront. Leave both empty to hide.')}${t('announcement_en', 'Announcement bar (English)', '', 'Empty = the বাংলা text is shown')}</div></div></div>
     <div class="sec"><h4>Contact</h4><div class="grid"><div class="grid g2">${t('phone', 'Phone', 'text', 'Shown in header/footer')}${t('whatsapp', 'WhatsApp number', 'text', 'With 88, no + (e.g. 8801863709122)')}</div>
-      <div class="grid g2">${t('email', 'Email', 'email')}${t('address', 'Address')}</div></div></div>
+      <div class="grid g2">${t('email', 'Email', 'email')}<span></span></div>
+      <div class="grid g2">${t('address', 'Address (বাংলা)')}${t('address_en', 'Address (English)')}</div></div></div>
+    <div class="sec"><h4>About us</h4><div class="grid">
+      <div class="flex" style="align-items:flex-start"><div id="aipv" style="width:120px;flex-shrink:0">${aboutSrc ? `<img class="thumb" style="width:120px;height:120px" src="${esc(aboutSrc)}" alt="">` : '<div class="thumb ph" style="width:120px;height:120px">Default logo</div>'}</div>
+        <div class="grow grid" style="gap:8px"><b class="small">About image</b><input type="file" name="about_image" accept="image/*">
+          <input type="url" name="about_image_url" placeholder="…or image URL" value="${esc(aboutSrc && !/\/media\//.test(aboutSrc) && s.about_image_url || '')}">
+          <small class="muted"><b>Best size: 840 × 840 px</b> (square 1:1), JPG/WebP, under 300 KB. Shown on the homepage "About us" section and the About page. Empty = HULLOR logo.</small>
+          ${aboutSrc ? '<label class="check small"><input type="checkbox" name="remove_about_image"> Remove current image (use default logo)</label>' : ''}</div></div>
+      <div class="grid g2">${t('about_title', 'Heading (বাংলা)', '', 'Empty = default heading')}${t('about_title_en', 'Heading (English)')}</div>
+      <div class="grid g2">${ta('about_text', 'Text (বাংলা)', 6, 'Leave a blank line between paragraphs. Empty = default text.')}${ta('about_text_en', 'Text (English)', 6, 'Empty = the বাংলা text is shown')}</div></div></div>
     <div class="sec"><h4>Social</h4><div class="grid g2">${t('facebook_url', 'Facebook URL', 'url')}${t('instagram_url', 'Instagram URL', 'url')}</div></div>
-    <div class="sec"><h4>Delivery charges</h4><div class="grid g3">${t('delivery_charge_dhaka', 'Inside Dhaka (৳)', 'number', '0 = free')}${t('delivery_charge_outside', 'Outside Dhaka (৳)', 'number', '0 = free')}${t('free_delivery_above', 'Free delivery above (৳)', 'number', 'Empty = never')}</div></div>
+    <div class="sec"><h4>Delivery charges</h4><div class="grid g3">${t('delivery_charge_dhaka', 'Inside Dhaka (৳)', 'number', 'Charged on every order')}${t('delivery_charge_outside', 'Outside Dhaka (৳)', 'number', 'Charged on every order')}${t('free_delivery_above', 'No delivery charge above (৳)', 'number', 'Optional. Empty = always charge')}</div></div>
+    <div class="sec"><h4>Checkout</h4><div class="grid">${toggle('require_otp', s.require_otp !== false, 'Verify mobile number with an SMS OTP when a customer orders without logging in')}
+      <small class="muted">Needs the BulkSMSBD API key and Sender ID set on the server (Render → Environment). Turn off to allow orders without OTP.</small></div></div>
     <button class="btn primary" id="ssave" style="padding:10px 22px">Save settings</button></form>`;
+  const fi = $('input[name=about_image]', view), pv = $('#aipv', view);
+  fi.onchange = () => { const f = fi.files[0]; if (!f) return; if (f.size > 6 * 1024 * 1024) { fi.value = ''; return toast('Image is larger than 6MB', 'err'); } pv.innerHTML = `<img class="thumb" style="width:120px;height:120px" src="${URL.createObjectURL(f)}" alt="">`; };
   $('#ssave').onclick = e => busy(e.currentTarget, async () => {
-    const f = readForm($('#sf'));
-    f.delivery_charge_dhaka = +f.delivery_charge_dhaka || 0; f.delivery_charge_outside = +f.delivery_charge_outside || 0; f.free_delivery_above = intOrNull(f.free_delivery_above);
-    try { await api('/admin/settings/', {method: 'PATCH', body: f}); toast('Settings saved'); } catch (er) { toast(errMsg(er), 'err'); }
+    const f = readForm($('#sf')), fd = new FormData();
+    f.delivery_charge_dhaka = String(+f.delivery_charge_dhaka || 0); f.delivery_charge_outside = String(+f.delivery_charge_outside || 0);
+    Object.entries(f).forEach(([k, v]) => {
+      if (k === 'about_image') { if (v && v[0]) fd.append('about_image', v[0]); }
+      else if (typeof v === 'boolean') { if (k !== 'remove_about_image' || v) fd.append(k, v ? 'true' : 'false'); }
+      else fd.append(k, v);
+    });
+    try { const r = await api('/admin/settings/', {method: 'PATCH', form: fd}); toast('Settings saved'); if (r.about_image_src || fi.value === '') { s.about_image_src = r.about_image_src; } fi.value = ''; }
+    catch (er) { toast(errMsg(er), 'err'); }
   });
 };
 
