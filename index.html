@@ -183,7 +183,7 @@ tbody tr.click:hover td{background:rgba(239,232,216,.35)}
 .dz{border:2px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--muted);cursor:pointer;transition:.15s}
 .dz:hover,.dz.over{border-color:var(--gold);background:rgba(179,134,47,.06);color:var(--ink)}
 .imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-top:12px}
-.im{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--ash);aspect-ratio:4/5}
+.im{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--ash);aspect-ratio:1/1}
 .im img{width:100%;height:100%;object-fit:cover;display:block}
 .im .tools{position:absolute;inset:auto 0 0 0;display:flex;justify-content:space-between;padding:4px;background:linear-gradient(transparent,rgba(0,0,0,.55))}
 .im .tools button{background:rgba(255,255,255,.92);border:0;border-radius:6px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -703,7 +703,7 @@ async function openProduct(id) {
       <div class="flex wrap" style="gap:28px">${toggle('is_active', p.is_active, 'Visible in store')}${toggle('is_featured', p.is_featured, 'Featured on homepage')}</div></div></div>
     <div class="sec"><h4>Variants & stock</h4><div id="vbox"></div>
       <div class="flex wrap" style="margin-top:6px"><button type="button" class="btn sm" id="addv">${ic('plus')} Add variant</button><button type="button" class="btn sm" id="presets">Add sizes S · M · L · XL · XXL</button></div></div>
-    <div class="sec"><h4>Images</h4><div class="dz" id="dz" tabindex="0" role="button">${ic('up2', 'ic')}<div><b>Drop images here</b> or click to browse</div><div class="small">JPG / PNG / WebP · up to 6MB each · first image is the main one</div><div class="small"><b>Best size: 1000 × 1250 px</b> (4:5 portrait, min 800 × 1000) · ideally under 500 KB. Images are cropped to 4:5 in the shop.</div></div>
+    <div class="sec"><h4>Images</h4><div class="dz" id="dz" tabindex="0" role="button">${ic('up2', 'ic')}<div><b>Drop images here</b> or click to browse</div><div class="small">JPG / PNG / WebP · up to 6MB each · first image is the main one</div><div class="small"><b>Best size: 1000 × 1000 px</b> (square 1:1, min 800 × 800) · ideally under 500 KB. Product images are shown square, so keep the product in the center.</div></div>
       <input type="file" id="fi" accept="image/*" multiple class="hide">
       <div class="flex" style="margin-top:10px"><input type="url" id="iurl" placeholder="…or paste an image URL"><button type="button" class="btn" id="iurlb">Add URL</button></div><div class="imgs" id="imgs"></div></div></form>`;
   m.foot.innerHTML = `${id ? '<button class="btn danger" data-del style="margin-right:auto">Delete</button>' : ''}<button class="btn" data-close>Cancel</button><button class="btn primary" data-save>${id ? 'Save changes' : 'Create product'}</button>`;
