@@ -1007,9 +1007,35 @@ VIEWS.settings = async (view, alive) => {
     <div class="sec"><h4>Delivery charges</h4><div class="grid g3">${t('delivery_charge_dhaka', 'Inside Dhaka (৳)', 'number', 'Charged on every order')}${t('delivery_charge_outside', 'Outside Dhaka (৳)', 'number', 'Charged on every order')}${t('free_delivery_above', 'No delivery charge above (৳)', 'number', 'Optional. Empty = always charge')}</div></div>
     <div class="sec"><h4>Checkout</h4><div class="grid">${toggle('require_otp', s.require_otp !== false, 'Also require an SMS OTP for orders placed without logging in (OFF by default)')}
       <small class="muted">Registration and password reset always use an SMS OTP. Keep this OFF so guests can order without OTP.</small></div></div>
+    <div class="sec"><h4>System check</h4><div class="grid">
+      <small class="muted">If OTP SMS is not arriving or uploaded images are not showing on the website, run this check — it shows the exact reason.</small>
+      <div class="flex" style="flex-wrap:wrap;gap:8px;align-items:center"><button type="button" class="btn" id="chk">Check SMS &amp; image storage</button>
+        <input type="text" id="tphone" placeholder="01XXXXXXXXX" style="max-width:170px"><button type="button" class="btn" id="tsms">Send test SMS</button></div>
+      <div id="chkout" class="small"></div></div></div>
     <button class="btn primary" id="ssave" style="padding:10px 22px">Save settings</button></form>`;
   const fi = $('input[name=about_image]', view), pv = $('#aipv', view);
   fi.onchange = () => { const f = fi.files[0]; if (!f) return; if (f.size > 6 * 1024 * 1024) { fi.value = ''; return toast('Image is larger than 6MB', 'err'); } pv.innerHTML = `<img class="thumb" style="width:120px;height:120px" src="${URL.createObjectURL(f)}" alt="">`; };
+  const ok = (b, text) => `<div>${b ? '✅' : '❌'} ${text}</div>`;
+  $('#chk').onclick = e => busy(e.currentTarget, async () => {
+    const out = $('#chkout', view); out.innerHTML = 'Checking…';
+    try {
+      const r = await api('/admin/system-check/'), sm = r.sms, st = r.storage;
+      const bal = sm.balance ? (sm.balance.error ? `error: ${esc(sm.balance.error)}` : esc(JSON.stringify(sm.balance))) : '—';
+      out.innerHTML = '<b>SMS (BulkSMSBD)</b>' + ok(sm.configured, sm.configured ? `API key + Sender ID set (${esc(sm.sender_id)})` : 'BULKSMSBD_API_KEY / BULKSMSBD_SENDER_ID not set on the server (Render → Environment)')
+        + (sm.configured ? `<div class="muted">Balance response: ${bal}</div>` : '')
+        + '<br><b>Image storage</b>' + ok(st.supabase, st.supabase ? 'Supabase Storage is on' : 'Supabase Storage is OFF (images go to a temporary disk)')
+        + (st.public_base ? `<div class="muted">Public base: ${esc(st.public_base)}</div>` : '')
+        + (st.sample_url ? ok(st.sample_status === 200 || st.sample_status === 206, `Latest image opens? status: ${esc(String(st.sample_status ?? '?'))}<br><a href="${esc(st.sample_url)}" target="_blank" rel="noopener">${esc(st.sample_url)}</a>`) : '')
+        + (st.hints || []).map(h => `<div style="color:#b3261e;margin-top:4px">⚠ ${esc(h)}</div>`).join('');
+    } catch (er) { out.innerHTML = `<span style="color:#b3261e">${esc(errMsg(er))}</span>`; }
+  });
+  $('#tsms').onclick = e => busy(e.currentTarget, async () => {
+    const out = $('#chkout', view);
+    try {
+      const r = await api('/admin/sms-test/', {method: 'POST', body: {phone: $('#tphone', view).value.trim()}});
+      out.innerHTML = r.ok ? `✅ ${esc(r.detail)}` : `<span style="color:#b3261e">❌ SMS failed — code: ${esc(String(r.code ?? ''))} — ${esc(r.meaning || r.detail || '')}</span>`;
+    } catch (er) { out.innerHTML = `<span style="color:#b3261e">${esc(errMsg(er))}</span>`; }
+  });
   $('#ssave').onclick = e => busy(e.currentTarget, async () => {
     const f = readForm($('#sf')), fd = new FormData();
     f.delivery_charge_dhaka = String(+f.delivery_charge_dhaka || 0); f.delivery_charge_outside = String(+f.delivery_charge_outside || 0);
